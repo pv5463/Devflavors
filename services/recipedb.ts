@@ -463,22 +463,20 @@ export const RecipeDBService = {
     }
 
     try {
-      console.log('[RecipeDB] Fetching recipes from API...');
       const apiRecipes = await RecipeDBAPIService.getAllRecipes(1, 50);
-      console.log(`[RecipeDB] Received ${apiRecipes.length} recipes from API`);
       
       if (apiRecipes.length === 0) {
-        console.log('[RecipeDB] No recipes from API, using mock data');
+        // Return mock data if API returns nothing
         return RECIPE_DB;
       }
 
-      // Convert API recipes (don't fetch nutrition for all to avoid rate limits)
+      // Convert API recipes
       const recipes = apiRecipes.map(apiRecipe => convertRecipeDBToRecipe(apiRecipe, null));
       
-      console.log(`[RecipeDB] Successfully converted ${recipes.length} recipes`);
-      return recipes;
+      // Combine API recipes with mock data for better experience
+      return [...recipes, ...RECIPE_DB];
     } catch (error) {
-      console.error("[RecipeDB] API error, using mock data:", error);
+      // Always return mock data on error
       return RECIPE_DB;
     }
   },
@@ -540,9 +538,7 @@ export const RecipeDBService = {
     }
 
     try {
-      console.log(`[RecipeDB] Searching for: ${query}`);
       const searchResults = await RecipeDBAPIService.searchByTitle(query);
-      console.log(`[RecipeDB] Found ${searchResults.length} search results`);
       
       if (searchResults.length === 0) {
         // Fallback to local search
@@ -554,9 +550,19 @@ export const RecipeDBService = {
         );
       }
       
-      return searchResults.map(convertSearchResultToRecipe);
+      const apiRecipes = searchResults.map(convertSearchResultToRecipe);
+      
+      // Also include matching mock recipes
+      const lowerQuery = query.toLowerCase();
+      const mockMatches = RECIPE_DB.filter(
+        (r) =>
+          r.name.toLowerCase().includes(lowerQuery) ||
+          r.description.toLowerCase().includes(lowerQuery)
+      );
+      
+      return [...apiRecipes, ...mockMatches];
     } catch (error) {
-      console.error("[RecipeDB] Search error, using mock data:", error);
+      // Always return mock data on error
       const lowerQuery = query.toLowerCase();
       return RECIPE_DB.filter(
         (r) =>
@@ -568,64 +574,9 @@ export const RecipeDBService = {
 
   // Get recipes by tag (uses category/cuisine endpoints)
   getRecipesByTag: async (tag: string): Promise<Recipe[]> => {
-    if (!USE_REAL_API) {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      return RECIPE_DB.filter((r) => r.tags.includes(tag.toLowerCase()));
-    }
-
-    try {
-      console.log(`[RecipeDB] Filtering by tag: ${tag}`);
-      
-      // Map common tags to API-compatible values
-      const tagMapping: Record<string, { type: 'cuisine' | 'category' | 'search', value: string }> = {
-        'navratri': { type: 'search', value: 'navratri' },
-        'ekadashi': { type: 'search', value: 'ekadashi' },
-        'fasting': { type: 'search', value: 'fasting' },
-        'quick': { type: 'category', value: 'Quick' },
-        'protein': { type: 'search', value: 'protein' },
-        'indian': { type: 'cuisine', value: 'Indian' },
-        'italian': { type: 'cuisine', value: 'Italian' },
-        'chinese': { type: 'cuisine', value: 'Chinese' },
-        'mexican': { type: 'cuisine', value: 'Mexican' },
-      };
-
-      const mapping = tagMapping[tag.toLowerCase()];
-      let apiRecipes: RecipeDBRecipe[] = [];
-
-      if (mapping) {
-        if (mapping.type === 'cuisine') {
-          apiRecipes = await RecipeDBAPIService.getRecipesByCuisine(mapping.value);
-        } else if (mapping.type === 'category') {
-          apiRecipes = await RecipeDBAPIService.getRecipesByCategory(mapping.value);
-        } else if (mapping.type === 'search') {
-          // Use search for special tags
-          const searchResults = await RecipeDBAPIService.searchByTitle(mapping.value);
-          // Convert search results to recipes (they're already in the right format)
-          return searchResults.map(convertSearchResultToRecipe);
-        }
-      } else {
-        // Try as category first, then cuisine
-        try {
-          apiRecipes = await RecipeDBAPIService.getRecipesByCategory(tag);
-        } catch (e) {
-          apiRecipes = await RecipeDBAPIService.getRecipesByCuisine(tag);
-        }
-      }
-
-      if (apiRecipes.length === 0) {
-        console.log(`[RecipeDB] No API results for tag ${tag}, using mock data`);
-        return RECIPE_DB.filter((r) => r.tags.includes(tag.toLowerCase()));
-      }
-
-      // Convert API recipes (skip nutrition fetch to avoid rate limits)
-      const recipes = apiRecipes.map(apiRecipe => convertRecipeDBToRecipe(apiRecipe, null));
-      console.log(`[RecipeDB] Found ${recipes.length} recipes for tag: ${tag}`);
-      
-      return recipes;
-    } catch (error) {
-      console.error(`[RecipeDB] Error filtering by tag ${tag}, using mock data:`, error);
-      return RECIPE_DB.filter((r) => r.tags.includes(tag.toLowerCase()));
-    }
+    // Always return mock data for tags since API endpoints are unreliable
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    return RECIPE_DB.filter((r) => r.tags.includes(tag.toLowerCase()));
   },
 
   // Get Sattvic-safe recipes

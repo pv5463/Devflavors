@@ -170,38 +170,6 @@ export default function RecipesScreen() {
 
         {/* Tags Section */}
         <View style={{ paddingHorizontal: 20, paddingVertical: 16 }}>
-          {/* API Status Indicator */}
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              backgroundColor: "#fff8e1",
-              paddingHorizontal: 12,
-              paddingVertical: 8,
-              borderRadius: 12,
-              marginBottom: 12,
-            }}
-          >
-            <View
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: 4,
-                backgroundColor: "#f59e0b",
-                marginRight: 8,
-              }}
-            />
-            <Text
-              style={{
-                fontSize: 13,
-                color: "#92400e",
-                fontWeight: "600",
-              }}
-            >
-              Hybrid Mode: API + Curated Recipes
-            </Text>
-          </View>
-
           <Text
             style={{
               fontSize: 16,

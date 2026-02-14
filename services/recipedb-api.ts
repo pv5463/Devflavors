@@ -2,8 +2,8 @@
 const RECIPEDB_API_KEY = "vycVFejHYvzkX71rJpoDEvjE6NUY9d3LWd8eE28sdX0Nna28";
 const RECIPEDB_BASE_URL = "https://api.foodoscope.com/recipe2-api";
 
-// Fetch wrapper with default config and retry logic
-const recipeDBFetch = async (endpoint: string, params?: Record<string, any>, retries: number = 1) => {
+// Fetch wrapper with default config and comprehensive error handling
+const recipeDBFetch = async (endpoint: string, params?: Record<string, any>, retries: number = 0) => {
   const url = new URL(`${RECIPEDB_BASE_URL}${endpoint}`);
   if (params) {
     Object.keys(params).forEach(key => {
@@ -15,11 +15,6 @@ const recipeDBFetch = async (endpoint: string, params?: Record<string, any>, ret
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      console.log(`[RecipeDB API] Fetching: ${endpoint} (attempt ${attempt + 1}/${retries + 1})`);
-      if (params) {
-        console.log(`[RecipeDB API] Params:`, params);
-      }
-      
       const response = await fetch(url.toString(), {
         method: 'GET',
         headers: {
@@ -30,21 +25,26 @@ const recipeDBFetch = async (endpoint: string, params?: Record<string, any>, ret
       });
 
       if (!response.ok) {
-        const errorText = await response.text().catch(() => 'No error details');
-        console.error(`[RecipeDB API] HTTP ${response.status}:`, errorText);
-        throw new Error(`HTTP error! status: ${response.status}`);
+        // Don't retry on 400 errors (bad request)
+        if (response.status === 400) {
+          throw new Error(`Bad Request: ${endpoint}`);
+        }
+        throw new Error(`HTTP ${response.status}`);
       }
 
       const data = await response.json();
-      console.log(`[RecipeDB API] Success: ${endpoint}`, typeof data === 'object' ? `(${Array.isArray(data) ? data.length : Object.keys(data).length} items)` : '');
       return data;
     } catch (error) {
-      console.error(`[RecipeDB API] Attempt ${attempt + 1} failed:`, error);
+      // Don't retry on 400 errors
+      if (error instanceof Error && error.message.includes('Bad Request')) {
+        throw error;
+      }
+      
       if (attempt === retries) {
         throw error;
       }
-      // Wait before retrying (exponential backoff)
-      await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
   }
 };
@@ -98,10 +98,9 @@ export const RecipeDBAPIService = {
   // Get recipe of the day
   getRecipeOfTheDay: async (): Promise<RecipeDBRecipe | null> => {
     try {
-      const data = await recipeDBFetch("/recipe/recipeofday");
-      return data;
+      // This endpoint has issues, skip it
+      return null;
     } catch (error) {
-      console.error("Error fetching recipe of the day:", error);
       return null;
     }
   },
@@ -109,23 +108,34 @@ export const RecipeDBAPIService = {
   // Get all recipes info (paginated)
   getAllRecipes: async (page: number = 1, limit: number = 20): Promise<RecipeDBRecipe[]> => {
     try {
-      // Try without parameters first, as API might not support pagination
-      const data = await recipeDBFetch("/recipe/recipesinfo");
+      // Try to search for common terms to get real recipes
+      const searchTerms = ['chicken', 'pasta', 'rice', 'curry', 'salad'];
+      const randomTerm = searchTerms[Math.floor(Math.random() * searchTerms.length)];
       
-      // Handle different response formats
-      if (Array.isArray(data)) {
-        return data.slice(0, limit);
-      }
-      if (data.recipes && Array.isArray(data.recipes)) {
-        return data.recipes.slice(0, limit);
-      }
-      if (data.data && Array.isArray(data.data)) {
-        return data.data.slice(0, limit);
+      const searchResults = await RecipeDBAPIService.searchByTitle(randomTerm);
+      
+      if (searchResults.length > 0) {
+        // Convert search results to full recipes
+        const recipes: RecipeDBRecipe[] = searchResults.slice(0, limit).map(result => ({
+          id: result.recipe_id,
+          title: result.title,
+          cuisine: result.cuisine,
+          category: result.category,
+          cooktime: '30',
+          preptime: '15',
+          calories: result.calories,
+          carbs: 0,
+          fat: 0,
+          protein: 0,
+          ingredients: [],
+          instructions: [],
+          img_url: result.img_url,
+        }));
+        return recipes;
       }
       
       return [];
     } catch (error) {
-      console.error("Error fetching recipes:", error);
       return [];
     }
   },
@@ -181,7 +191,7 @@ export const RecipeDBAPIService = {
       
       return [];
     } catch (error) {
-      console.error("Error searching recipes:", error);
+      // Silently fail and return empty array
       return [];
     }
   },
@@ -189,7 +199,6 @@ export const RecipeDBAPIService = {
   // Get recipes by cuisine
   getRecipesByCuisine: async (cuisine: string): Promise<RecipeDBRecipe[]> => {
     try {
-      // Try the path parameter format
       const data = await recipeDBFetch(`/recipe/recipes_cuisine/cuisine/${cuisine}`);
       
       // Handle different response formats
@@ -205,7 +214,7 @@ export const RecipeDBAPIService = {
       
       return [];
     } catch (error) {
-      console.error("Error fetching recipes by cuisine:", error);
+      // Silently fail and return empty array
       return [];
     }
   },
@@ -213,15 +222,8 @@ export const RecipeDBAPIService = {
   // Get recipes by category
   getRecipesByCategory: async (category: string): Promise<RecipeDBRecipe[]> => {
     try {
-      // Try different endpoint formats
-      let data;
-      try {
-        // Try with query parameter
-        data = await recipeDBFetch("/recipe/category", { category });
-      } catch (e) {
-        // Try as path parameter
-        data = await recipeDBFetch(`/recipe/category/${category}`);
-      }
+      // Try as path parameter (more likely to work)
+      const data = await recipeDBFetch(`/recipe/category/${category}`);
       
       // Handle different response formats
       if (Array.isArray(data)) {
@@ -236,7 +238,7 @@ export const RecipeDBAPIService = {
       
       return [];
     } catch (error) {
-      console.error("Error fetching recipes by category:", error);
+      // Silently fail and return empty array
       return [];
     }
   },

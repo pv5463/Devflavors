@@ -36,6 +36,12 @@ export default function RootLayout() {
         <Tabs.Screen
           name="index"
           options={{
+            href: null, // Hide from tabs - this is just the auth checker
+          }}
+        />
+        <Tabs.Screen
+          name="home"
+          options={{
             title: "Home",
             tabBarIcon: ({ color, focused }) => (
               <View
@@ -139,6 +145,30 @@ export default function RootLayout() {
                 <Text style={{ fontSize: 24 }}>🍔</Text>
               </View>
             ),
+          }}
+        />
+        <Tabs.Screen
+          name="login"
+          options={{
+            href: null, // Hide from tabs but keep accessible
+          }}
+        />
+        <Tabs.Screen
+          name="signup"
+          options={{
+            href: null, // Hide from tabs but keep accessible
+          }}
+        />
+        <Tabs.Screen
+          name="forgot-password"
+          options={{
+            href: null, // Hide from tabs but keep accessible
+          }}
+        />
+        <Tabs.Screen
+          name="profile"
+          options={{
+            href: null, // Hide from tabs but keep accessible
           }}
         />
         <Tabs.Screen

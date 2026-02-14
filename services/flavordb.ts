@@ -306,23 +306,28 @@ const INGREDIENT_DB: Ingredient[] = [
 export const FlavorDBService = {
   // Search ingredient by name
   searchIngredient: async (query: string): Promise<Ingredient[]> => {
+    // Always search local DB first
+    const lowerQuery = query.toLowerCase();
+    const localResults = INGREDIENT_DB.filter(
+      (ing) =>
+        ing.name.toLowerCase().includes(lowerQuery) ||
+        ing.compounds.some((c) =>
+          c.compoundName.toLowerCase().includes(lowerQuery)
+        )
+    );
+
     if (!USE_REAL_API) {
       await new Promise((resolve) => setTimeout(resolve, 300));
-      const lowerQuery = query.toLowerCase();
-      return INGREDIENT_DB.filter(
-        (ing) =>
-          ing.name.toLowerCase().includes(lowerQuery) ||
-          ing.compounds.some((c) =>
-            c.compoundName.toLowerCase().includes(lowerQuery)
-          )
-      );
+      return localResults;
     }
 
     try {
-      console.log(`[FlavorDB] Searching for: ${query}`);
-      // Search by common name via API
+      // Try to get API results
       const apiCompounds = await FlavorDBAPIService.getByCommonName(query);
-      console.log(`[FlavorDB] Found ${apiCompounds.length} API results`);
+      
+      if (apiCompounds.length === 0) {
+        return localResults;
+      }
       
       // Map API results to our Ingredient type
       const apiIngredients: Ingredient[] = apiCompounds.slice(0, 5).map((compound: FlavorDBCompound) => ({
@@ -330,7 +335,7 @@ export const FlavorDBService = {
         name: compound.commonName || compound.name,
         category: compound.category?.toLowerCase().includes("spice") ? "spice" : 
                   compound.category?.toLowerCase().includes("herb") ? "herb" : "aromatic",
-        sattvicStatus: "allowed", // Default to allowed, can be checked
+        sattvicStatus: "allowed",
         compounds: [{
           compoundId: compound.id,
           compoundName: compound.name,
@@ -348,26 +353,11 @@ export const FlavorDBService = {
         },
       }));
 
-      // Also search local DB
-      const localResults = INGREDIENT_DB.filter(
-        (ing) =>
-          ing.name.toLowerCase().includes(query.toLowerCase()) ||
-          ing.compounds.some((c) =>
-            c.compoundName.toLowerCase().includes(query.toLowerCase())
-          )
-      );
-
+      // Combine local and API results
       return [...localResults, ...apiIngredients];
     } catch (error) {
-      console.error("API search failed, falling back to local data:", error);
-      const lowerQuery = query.toLowerCase();
-      return INGREDIENT_DB.filter(
-        (ing) =>
-          ing.name.toLowerCase().includes(lowerQuery) ||
-          ing.compounds.some((c) =>
-            c.compoundName.toLowerCase().includes(lowerQuery)
-          )
-      );
+      // Always return local results on error
+      return localResults;
     }
   },
 

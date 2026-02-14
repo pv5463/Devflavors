@@ -103,38 +103,6 @@ export default function SubstituteScreen() {
           <Loading message="Loading forbidden ingredients..." />
         ) : (
           <View style={{ flex: 1 }}>
-            {/* API Status Indicator */}
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: "#e1f8e6",
-                paddingHorizontal: 12,
-                paddingVertical: 8,
-                borderRadius: 12,
-                marginBottom: 16,
-              }}
-            >
-              <View
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: 4,
-                  backgroundColor: "#2d9039",
-                  marginRight: 8,
-                }}
-              />
-              <Text
-                style={{
-                  fontSize: 13,
-                  color: "#1c6b28",
-                  fontWeight: "600",
-                }}
-              >
-                Molecular data from FlavorDB
-              </Text>
-            </View>
-
             <Text
               style={{
                 fontSize: 16,

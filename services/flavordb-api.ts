@@ -2,8 +2,8 @@
 const FLAVORDDB_API_KEY = "vycVFejHYvzkX71rJpoDEvjE6NUY9d3LWd8eE28sdX0Nna28";
 const FLAVORDDB_BASE_URL = "https://api.foodoscope.com/flavordb";
 
-// Fetch wrapper with default config and retry logic
-const flavorDBFetch = async (endpoint: string, params?: Record<string, any>, retries: number = 1) => {
+// Fetch wrapper with default config and comprehensive error handling
+const flavorDBFetch = async (endpoint: string, params?: Record<string, any>, retries: number = 0) => {
   const url = new URL(`${FLAVORDDB_BASE_URL}${endpoint}`);
   if (params) {
     Object.keys(params).forEach(key => {
@@ -15,8 +15,6 @@ const flavorDBFetch = async (endpoint: string, params?: Record<string, any>, ret
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      console.log(`[FlavorDB API] Fetching: ${endpoint} (attempt ${attempt + 1}/${retries + 1})`);
-      
       const response = await fetch(url.toString(), {
         method: 'GET',
         headers: {
@@ -26,19 +24,26 @@ const flavorDBFetch = async (endpoint: string, params?: Record<string, any>, ret
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        // Don't retry on 400 errors
+        if (response.status === 400) {
+          throw new Error(`Bad Request: ${endpoint}`);
+        }
+        throw new Error(`HTTP ${response.status}`);
       }
 
       const data = await response.json();
-      console.log(`[FlavorDB API] Success: ${endpoint}`);
       return data;
     } catch (error) {
-      console.error(`[FlavorDB API] Attempt ${attempt + 1} failed:`, error);
+      // Don't retry on 400 errors
+      if (error instanceof Error && error.message.includes('Bad Request')) {
+        throw error;
+      }
+      
       if (attempt === retries) {
         throw error;
       }
-      // Wait before retrying (exponential backoff)
-      await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
   }
 };
@@ -100,7 +105,7 @@ export const FlavorDBAPIService = {
       const data = await flavorDBFetch("/properties/by-commonName", { name });
       return data || [];
     } catch (error) {
-      console.error("Error fetching by common name:", error);
+      // Silently fail and return empty array
       return [];
     }
   },
@@ -111,7 +116,7 @@ export const FlavorDBAPIService = {
       const data = await flavorDBFetch(`/compounds/${id}`);
       return data || null;
     } catch (error) {
-      console.error("Error fetching compound by ID:", error);
+      // Silently fail and return null
       return null;
     }
   },
@@ -122,7 +127,7 @@ export const FlavorDBAPIService = {
       const data = await flavorDBFetch("/search", { q: query });
       return data || [];
     } catch (error) {
-      console.error("Error searching compounds:", error);
+      // Silently fail and return empty array
       return [];
     }
   },
@@ -133,7 +138,7 @@ export const FlavorDBAPIService = {
       const data = await flavorDBFetch("/compounds", { page, limit });
       return data || [];
     } catch (error) {
-      console.error("Error fetching all compounds:", error);
+      // Silently fail and return empty array
       return [];
     }
   },

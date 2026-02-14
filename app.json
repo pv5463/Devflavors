@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "Devflavors",
+    "slug": "devflavors",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#f2fcf4"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.devflavors.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#f2fcf4"
+      },
+      "package": "com.devflavors.app"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Devflavors to access your camera to scan ingredients."
+        }
+      ]
+    ]
+  }
+}

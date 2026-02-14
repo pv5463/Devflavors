@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, FlatList, Pressable } from "react-native";
+import { View, Text, FlatList, Pressable, Image } from "react-native";
 import { Card, Badge } from "./Card";
 import { Loading } from "./Loading";
 import { Recipe } from "../types";
@@ -23,30 +23,27 @@ export function RecipeList({
     const isFav = favorites?.includes(item.id);
     const forbiddenCount = item.ingredients.filter((i) => i.isForbidden).length;
 
+    // Generate recipe image URL based on recipe name
+    const getRecipeImage = (recipe: Recipe) => {
+      // Use a placeholder image service with recipe-related keywords
+      const keywords = recipe.name.toLowerCase().replace(/\s+/g, '-');
+      return `https://source.unsplash.com/400x300/?${keywords},indian-food,vegetarian`;
+    };
+
     return (
       <Pressable onPress={() => onSelectRecipe(item)}>
         <Card style={{ marginBottom: 12 }}>
           <View style={{ flexDirection: "row", gap: 12 }}>
-            <View
+            <Image
+              source={{ uri: getRecipeImage(item) }}
               style={{
-                width: 80,
-                height: 80,
-                backgroundColor: "#f2fcf4",
+                width: 100,
+                height: 100,
                 borderRadius: 12,
-                alignItems: "center",
-                justifyContent: "center",
+                backgroundColor: "#f2fcf4",
               }}
-            >
-              <Text style={{ fontSize: 32 }}>
-                {item.category === "Dessert"
-                  ? "🍮"
-                  : item.category === "Bread"
-                  ? "🫓"
-                  : item.category === "Breakfast"
-                  ? "🌅"
-                  : "🍛"}
-              </Text>
-            </View>
+              resizeMode="cover"
+            />
 
             <View style={{ flex: 1 }}>
               <View
@@ -76,7 +73,7 @@ export function RecipeList({
                     style={{ padding: 4 }}
                   >
                     <Text style={{ fontSize: 20 }}>
-                      {isFav ? "★" : "☆"}
+                      {isFav ? "⭐" : "☆"}
                     </Text>
                   </Pressable>
                 )}
@@ -102,13 +99,13 @@ export function RecipeList({
                 }}
               >
                 <Badge variant={item.sattvicStatus === "pure" ? "success" : "warning"}>
-                  {item.sattvicStatus === "pure" ? "Sattvic" : "Modified"}
+                  {item.sattvicStatus === "pure" ? "✓ Sattvic" : "Modified"}
                 </Badge>
                 {forbiddenCount > 0 && (
                   <Badge variant="error">{forbiddenCount} subs</Badge>
                 )}
                 <Badge variant="default">
-                  {item.prepTime + item.cookTime} min
+                  ⏱ {item.prepTime + item.cookTime} min
                 </Badge>
               </View>
             </View>

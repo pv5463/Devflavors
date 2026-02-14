@@ -3,15 +3,14 @@ import { View, Text, ScrollView, Animated, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useRef, useState } from "react";
-import { Card, CardHeader } from "../components/Card";
 import { Button } from "../components/Button";
-import { APIHealthService, APIHealthStatus } from "../services/api-health";
+import { AuthService } from "../services/supabase";
 
 export default function HomeScreen() {
   const router = useRouter();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
-  const [apiStatus, setApiStatus] = useState<APIHealthStatus | null>(null);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     Animated.parallel([
@@ -27,13 +26,12 @@ export default function HomeScreen() {
       }),
     ]).start();
 
-    // Check API health on mount
-    checkAPIHealth();
+    checkUser();
   }, []);
 
-  const checkAPIHealth = async () => {
-    const status = await APIHealthService.checkAll();
-    setApiStatus(status);
+  const checkUser = async () => {
+    const { user } = await AuthService.getCurrentUser();
+    setUser(user);
   };
 
   return (
@@ -43,7 +41,26 @@ export default function HomeScreen() {
         contentContainerStyle={{ padding: 20 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Premium Header */}
+        {/* Account Button */}
+        <View style={{ flexDirection: "row", justifyContent: "flex-end", marginBottom: 20 }}>
+          <Pressable
+            onPress={() => router.push(user ? "/profile" : "/login")}
+            style={{
+              backgroundColor: "#e1f8e6",
+              paddingHorizontal: 20,
+              paddingVertical: 12,
+              borderRadius: 20,
+              flexDirection: "row",
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ fontSize: 14, fontWeight: "700", color: "#1c6b28" }}>
+              {user ? "Profile" : "Sign In"}
+            </Text>
+          </Pressable>
+        </View>
+
+        {/* Premium Hero Section */}
         <Animated.View 
           style={{ 
             alignItems: "center", 
@@ -54,266 +71,324 @@ export default function HomeScreen() {
         >
           <LinearGradient
             colors={["#2d9039", "#1c6b28"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
             style={{
-              width: 96,
-              height: 96,
-              borderRadius: 28,
+              width: 120,
+              height: 120,
+              borderRadius: 32,
               alignItems: "center",
               justifyContent: "center",
-              marginBottom: 20,
+              marginBottom: 24,
               shadowColor: "#2d9039",
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.4,
-              shadowRadius: 16,
-              elevation: 12,
+              shadowOffset: { width: 0, height: 12 },
+              shadowOpacity: 0.5,
+              shadowRadius: 20,
+              elevation: 16,
             }}
           >
-            <Text style={{ fontSize: 48 }}>≡ƒî┐</Text>
+            <Text style={{ fontSize: 48, color: "#ffffff" }}>🌿</Text>
           </LinearGradient>
           <Text
             style={{
-              fontSize: 32,
-              fontWeight: "800",
+              fontSize: 36,
+              fontWeight: "900",
               color: "#1c4b25",
               textAlign: "center",
-              letterSpacing: -0.5,
+              letterSpacing: -1,
+              marginBottom: 8,
             }}
           >
             Devflavors
           </Text>
           <Text
             style={{
-              fontSize: 17,
+              fontSize: 18,
               color: "#878773",
               textAlign: "center",
-              marginTop: 8,
-              fontWeight: "500",
+              fontWeight: "600",
+              letterSpacing: 0.5,
             }}
           >
-            Sacred Science ΓÇó Pure Living
+            Sacred Science and Pure Living
           </Text>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginTop: 16,
+              backgroundColor: "#e1f8e6",
+              paddingHorizontal: 20,
+              paddingVertical: 10,
+              borderRadius: 20,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 14,
+                color: "#1c6b28",
+                fontWeight: "700",
+              }}
+            >
+              100% Sattvic - No Onion - No Garlic
+            </Text>
+          </View>
         </Animated.View>
 
-        {/* Premium Info Card */}
+        {/* Mission Statement */}
         <LinearGradient
-          colors={["#e1f8e6", "#c3eec9"]}
+          colors={["#ffffff", "#f9f9f6"]}
           style={{
             borderRadius: 24,
             padding: 24,
-            marginBottom: 20,
-            shadowColor: "#2d9039",
+            marginBottom: 32,
+            shadowColor: "#1c4b25",
             shadowOffset: { width: 0, height: 6 },
-            shadowOpacity: 0.15,
-            shadowRadius: 12,
+            shadowOpacity: 0.12,
+            shadowRadius: 16,
             elevation: 8,
+            borderWidth: 1,
+            borderColor: "#e8e8e0",
           }}
         >
-          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
             <View
               style={{
-                width: 48,
-                height: 48,
-                borderRadius: 14,
-                backgroundColor: "rgba(255,255,255,0.7)",
+                width: 56,
+                height: 56,
+                borderRadius: 16,
+                backgroundColor: "#e1f8e6",
                 alignItems: "center",
                 justifyContent: "center",
-                marginRight: 12,
+                marginRight: 16,
               }}
             >
-              <Text style={{ fontSize: 24 }}>≡ƒòë∩╕Å</Text>
+              <Text style={{ fontSize: 28, color: "#2d9039" }}>🔬</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 20, fontWeight: "700", color: "#1c4b25" }}>
-                Navratri ΓÇó Ekadashi Mode
+              <Text style={{ fontSize: 20, fontWeight: "800", color: "#1c4b25", marginBottom: 4 }}>
+                Molecular Precision
               </Text>
-              <Text style={{ fontSize: 14, color: "#257330", marginTop: 2 }}>
-                No Onion ΓÇó No Garlic ΓÇó Pure Sattvic
+              <Text style={{ fontSize: 14, color: "#2d9039", fontWeight: "600" }}>
+                FlavorDB-Powered Engine
               </Text>
             </View>
           </View>
-          <Text style={{ fontSize: 15, color: "#1c4b25", lineHeight: 22 }}>
-            Our FlavorDB-powered molecular engine finds scientifically-valid substitutes 
-            that replicate forbidden ingredient flavors using pure Sattvic alternatives.
+          <Text style={{ fontSize: 15, color: "#5c5c50", lineHeight: 24 }}>
+            Our advanced molecular engine analyzes flavor compounds to find scientifically-valid 
+            Sattvic substitutes that replicate forbidden ingredients while maintaining authentic taste.
           </Text>
         </LinearGradient>
-
-        {/* API Status Card */}
-        {apiStatus && (
-          <View
-            style={{
-              backgroundColor: "#ffffff",
-              borderRadius: 20,
-              padding: 20,
-              marginBottom: 32,
-              shadowColor: "#1c4b25",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.1,
-              shadowRadius: 12,
-              elevation: 6,
-            }}
-          >
-            <Text style={{ fontSize: 16, fontWeight: "700", color: "#1c4b25", marginBottom: 12 }}>
-              ≡ƒîÉ API Status
-            </Text>
-            
-            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
-              <View
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: 4,
-                  backgroundColor: apiStatus.recipeDB.status === 'online' ? "#2d9039" : "#f14141",
-                  marginRight: 8,
-                }}
-              />
-              <Text style={{ fontSize: 14, color: "#5c5c50", flex: 1 }}>
-                RecipeDB: {apiStatus.recipeDB.status === 'online' ? 'Connected' : 'Offline'}
-              </Text>
-              {apiStatus.recipeDB.responseTime && (
-                <Text style={{ fontSize: 12, color: "#878773" }}>
-                  {apiStatus.recipeDB.responseTime}ms
-                </Text>
-              )}
-            </View>
-
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <View
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: 4,
-                  backgroundColor: apiStatus.flavorDB.status === 'online' ? "#2d9039" : "#f14141",
-                  marginRight: 8,
-                }}
-              />
-              <Text style={{ fontSize: 14, color: "#5c5c50", flex: 1 }}>
-                FlavorDB: {apiStatus.flavorDB.status === 'online' ? 'Connected' : 'Offline'}
-              </Text>
-              {apiStatus.flavorDB.responseTime && (
-                <Text style={{ fontSize: 12, color: "#878773" }}>
-                  {apiStatus.flavorDB.responseTime}ms
-                </Text>
-              )}
-            </View>
-          </View>
-        )}
 
         {/* Quick Actions */}
         <Text
           style={{
-            fontSize: 22,
-            fontWeight: "700",
+            fontSize: 24,
+            fontWeight: "800",
             color: "#1c4b25",
-            marginBottom: 16,
+            marginBottom: 20,
           }}
         >
-          Quick Actions
+          Explore Features
         </Text>
+
+        {/* Stats Grid */}
+        <View
+          style={{
+            flexDirection: "row",
+            gap: 12,
+            marginBottom: 20,
+          }}
+        >
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: "#e1f8e6",
+              borderRadius: 20,
+              padding: 20,
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ fontSize: 32, fontWeight: "900", color: "#1c6b28", marginBottom: 4 }}>
+              8+
+            </Text>
+            <Text style={{ fontSize: 13, color: "#257330", fontWeight: "600", textAlign: "center" }}>
+              Sacred Recipes
+            </Text>
+          </View>
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: "#fff8e1",
+              borderRadius: 20,
+              padding: 20,
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ fontSize: 32, fontWeight: "900", color: "#92400e", marginBottom: 4 }}>
+              100%
+            </Text>
+            <Text style={{ fontSize: 13, color: "#92400e", fontWeight: "600", textAlign: "center" }}>
+              Sattvic Pure
+            </Text>
+          </View>
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: "#fce7f3",
+              borderRadius: 20,
+              padding: 20,
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ fontSize: 32, fontWeight: "900", color: "#9f1239", marginBottom: 4 }}>
+              AI
+            </Text>
+            <Text style={{ fontSize: 13, color: "#9f1239", fontWeight: "600", textAlign: "center" }}>
+              Powered
+            </Text>
+          </View>
+        </View>
 
         <Button
           onPress={() => router.push("/substitute")}
           size="lg"
-          style={{ marginBottom: 32 }}
+          style={{ marginBottom: 16 }}
         >
-          ≡ƒö¼ Find Molecular Substitutes
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
+            <Text style={{ fontSize: 16, fontWeight: "700", color: "#ffffff" }}>
+              Find Molecular Substitutes
+            </Text>
+          </View>
         </Button>
 
-        {/* Featured Substitutions */}
+        {/* Popular Substitutions */}
         <Text
           style={{
-            fontSize: 22,
-            fontWeight: "700",
+            fontSize: 24,
+            fontWeight: "800",
             color: "#1c4b25",
-            marginBottom: 16,
+            marginBottom: 20,
+            marginTop: 16,
           }}
         >
           Popular Substitutions
         </Text>
 
-        <Pressable onPress={() => router.push("/substitute")}>
+        <Pressable 
+          onPress={() => router.push("/substitute")}
+          style={{ marginBottom: 16 }}
+        >
           <LinearGradient
-            colors={["#ffffff", "#f9f9f6"]}
+            colors={["#ffffff", "#fff5f5"]}
             style={{
-              borderRadius: 20,
-              padding: 20,
-              marginBottom: 16,
+              borderRadius: 24,
+              padding: 24,
               shadowColor: "#1c4b25",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.1,
-              shadowRadius: 12,
-              elevation: 6,
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.12,
+              shadowRadius: 16,
+              elevation: 8,
+              borderWidth: 1,
+              borderColor: "#ffe0e0",
             }}
           >
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <View
                 style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: 16,
+                  width: 72,
+                  height: 72,
+                  borderRadius: 20,
                   backgroundColor: "#ffcaca",
                   alignItems: "center",
                   justifyContent: "center",
-                  marginRight: 16,
+                  marginRight: 20,
                 }}
               >
-                <Text style={{ fontSize: 36 }}>≡ƒºä</Text>
+                <Text style={{ fontSize: 40, color: "#dc2626" }}>🧄</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 18, fontWeight: "700", color: "#1c4b25", marginBottom: 4 }}>
+                <Text style={{ fontSize: 20, fontWeight: "800", color: "#1c4b25", marginBottom: 6 }}>
                   Garlic Substitute
                 </Text>
-                <Text style={{ fontSize: 14, color: "#878773", marginBottom: 8 }}>
+                <Text style={{ fontSize: 14, color: "#878773", marginBottom: 10 }}>
                   Molecular flavor matching
                 </Text>
-                <Text style={{ fontSize: 13, color: "#2d9039", fontWeight: "600" }}>
-                  ΓåÆ Asafoetida + Cumin + Ginger
-                </Text>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    backgroundColor: "#e1f8e6",
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 12,
+                    alignSelf: "flex-start",
+                  }}
+                >
+                  <Text style={{ fontSize: 13, color: "#2d9039", fontWeight: "700" }}>
+                    Asafoetida + Cumin + Ginger
+                  </Text>
+                </View>
               </View>
-              <Text style={{ fontSize: 28, color: "#2d9039" }}>ΓåÆ</Text>
             </View>
           </LinearGradient>
         </Pressable>
 
-        <Pressable onPress={() => router.push("/substitute")}>
+        <Pressable 
+          onPress={() => router.push("/substitute")}
+          style={{ marginBottom: 32 }}
+        >
           <LinearGradient
-            colors={["#ffffff", "#f9f9f6"]}
+            colors={["#ffffff", "#fffef5"]}
             style={{
-              borderRadius: 20,
-              padding: 20,
-              marginBottom: 16,
+              borderRadius: 24,
+              padding: 24,
               shadowColor: "#1c4b25",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.1,
-              shadowRadius: 12,
-              elevation: 6,
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.12,
+              shadowRadius: 16,
+              elevation: 8,
+              borderWidth: 1,
+              borderColor: "#fff0d0",
             }}
           >
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <View
                 style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: 16,
+                  width: 72,
+                  height: 72,
+                  borderRadius: 20,
                   backgroundColor: "#ffefb0",
                   alignItems: "center",
                   justifyContent: "center",
-                  marginRight: 16,
+                  marginRight: 20,
                 }}
               >
-                <Text style={{ fontSize: 36 }}>≡ƒºà</Text>
+                <Text style={{ fontSize: 40, color: "#ca8a04" }}>🧅</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 18, fontWeight: "700", color: "#1c4b25", marginBottom: 4 }}>
+                <Text style={{ fontSize: 20, fontWeight: "800", color: "#1c4b25", marginBottom: 6 }}>
                   Onion Substitute
                 </Text>
-                <Text style={{ fontSize: 14, color: "#878773", marginBottom: 8 }}>
+                <Text style={{ fontSize: 14, color: "#878773", marginBottom: 10 }}>
                   Compound-level analysis
                 </Text>
-                <Text style={{ fontSize: 13, color: "#2d9039", fontWeight: "600" }}>
-                  ΓåÆ Asafoetida + Fenugreek + Cumin
-                </Text>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    backgroundColor: "#e1f8e6",
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 12,
+                    alignSelf: "flex-start",
+                  }}
+                >
+                  <Text style={{ fontSize: 13, color: "#2d9039", fontWeight: "700" }}>
+                    Asafoetida + Fenugreek + Cumin
+                  </Text>
+                </View>
               </View>
-              <Text style={{ fontSize: 28, color: "#2d9039" }}>ΓåÆ</Text>
             </View>
           </LinearGradient>
         </Pressable>
@@ -321,67 +396,143 @@ export default function HomeScreen() {
         {/* Features */}
         <Text
           style={{
-            fontSize: 22,
-            fontWeight: "700",
+            fontSize: 24,
+            fontWeight: "800",
             color: "#1c4b25",
-            marginBottom: 16,
-            marginTop: 16,
+            marginBottom: 20,
           }}
         >
           Why Devflavors?
         </Text>
 
-        <View style={{ marginBottom: 16 }}>
-          <Card style={{ marginBottom: 12 }}>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Text style={{ fontSize: 32, marginRight: 16 }}>≡ƒôû</Text>
+        <View style={{ marginBottom: 32 }}>
+          <LinearGradient
+            colors={["#ffffff", "#f9f9f6"]}
+            style={{
+              borderRadius: 20,
+              padding: 20,
+              marginBottom: 16,
+              shadowColor: "#1c4b25",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.1,
+              shadowRadius: 12,
+              elevation: 6,
+              borderWidth: 1,
+              borderColor: "#e8e8e0",
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
+              <View
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 14,
+                  backgroundColor: "#e1f8e6",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginRight: 16,
+                }}
+              >
+                <Text style={{ fontSize: 28, color: "#2d9039" }}>📖</Text>
+              </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 16, fontWeight: "600", color: "#1c4b25", marginBottom: 4 }}>
+                <Text style={{ fontSize: 18, fontWeight: "700", color: "#1c4b25", marginBottom: 6 }}>
                   Sacred Stories
                 </Text>
-                <Text style={{ fontSize: 13, color: "#878773", lineHeight: 20 }}>
+                <Text style={{ fontSize: 14, color: "#5c5c50", lineHeight: 22 }}>
                   Every fasting recipe comes with authentic mythological stories and spiritual significance
                 </Text>
               </View>
             </View>
-          </Card>
+          </LinearGradient>
 
-          <Card style={{ marginBottom: 12 }}>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Text style={{ fontSize: 32, marginRight: 16 }}>≡ƒö¼</Text>
+          <LinearGradient
+            colors={["#ffffff", "#f9f9f6"]}
+            style={{
+              borderRadius: 20,
+              padding: 20,
+              marginBottom: 16,
+              shadowColor: "#1c4b25",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.1,
+              shadowRadius: 12,
+              elevation: 6,
+              borderWidth: 1,
+              borderColor: "#e8e8e0",
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
+              <View
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 14,
+                  backgroundColor: "#e1f8e6",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginRight: 16,
+                }}
+              >
+                <Text style={{ fontSize: 28, color: "#2d9039" }}>🧠</Text>
+              </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 16, fontWeight: "600", color: "#1c4b25", marginBottom: 4 }}>
-                  Scientific Precision
+                <Text style={{ fontSize: 18, fontWeight: "700", color: "#1c4b25", marginBottom: 6 }}>
+                  AI Meal Planner
                 </Text>
-                <Text style={{ fontSize: 13, color: "#878773", lineHeight: 20 }}>
-                  FlavorDB-powered molecular substitution for authentic taste without forbidden ingredients
+                <Text style={{ fontSize: 14, color: "#5c5c50", lineHeight: 22 }}>
+                  Personalized meal plans based on your goals, activity level, and mood with pranic scoring
                 </Text>
               </View>
             </View>
-          </Card>
+          </LinearGradient>
 
-          <Card>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Text style={{ fontSize: 32, marginRight: 16 }}>≡ƒô╖</Text>
+          <LinearGradient
+            colors={["#ffffff", "#f9f9f6"]}
+            style={{
+              borderRadius: 20,
+              padding: 20,
+              shadowColor: "#1c4b25",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.1,
+              shadowRadius: 12,
+              elevation: 6,
+              borderWidth: 1,
+              borderColor: "#e8e8e0",
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
+              <View
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 14,
+                  backgroundColor: "#e1f8e6",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginRight: 16,
+                }}
+              >
+                <Text style={{ fontSize: 28, color: "#2d9039" }}>📷</Text>
+              </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 16, fontWeight: "600", color: "#1c4b25", marginBottom: 4 }}>
-                  AI Scanner
+                <Text style={{ fontSize: 18, fontWeight: "700", color: "#1c4b25", marginBottom: 6 }}>
+                  Smart Scanner
                 </Text>
-                <Text style={{ fontSize: 13, color: "#878773", lineHeight: 20 }}>
-                  Real-time camera scanning to instantly check Sattvic compliance of any ingredient
+                <Text style={{ fontSize: 14, color: "#5c5c50", lineHeight: 22 }}>
+                  Real-time camera scanning to instantly check Sattvic compliance and generate recipes
                 </Text>
               </View>
             </View>
-          </Card>
+          </LinearGradient>
         </View>
 
         {/* Footer */}
         <View style={{ alignItems: "center", marginTop: 32, marginBottom: 20 }}>
           <Text style={{ fontSize: 12, color: "#a8a890" }}>
-            Powered by FlavorDB & RecipeDB (CoSy Lab)
+            Powered by FlavorDB and RecipeDB
           </Text>
           <Text style={{ fontSize: 12, color: "#a8a890", marginTop: 4 }}>
-            Sacred Science ΓÇó Modern Technology
+            Sacred Science and Modern Technology
           </Text>
         </View>
       </ScrollView>

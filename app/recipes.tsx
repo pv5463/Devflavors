@@ -97,7 +97,7 @@ export default function RecipesScreen() {
                   marginBottom: 12,
                 }}
               >
-                <Text style={{ fontSize: 40 }}>📖</Text>
+                <Text style={{ fontSize: 32, color: "#ffffff", fontWeight: "800" }}>R</Text>
               </View>
               <Text
                 style={{
@@ -119,7 +119,7 @@ export default function RecipesScreen() {
                   fontWeight: "500",
                 }}
               >
-                No Onion • No Garlic • Pure Sattvic
+                No Onion - No Garlic - Pure Sattvic
               </Text>
             </View>
 
@@ -139,7 +139,7 @@ export default function RecipesScreen() {
                 elevation: 4,
               }}
             >
-              <Text style={{ fontSize: 20, marginRight: 12 }}>🔍</Text>
+              <Text style={{ fontSize: 20, color: "#878773", marginRight: 12 }}>Search</Text>
               <TextInput
                 value={searchInput}
                 onChangeText={setSearchInput}
@@ -161,7 +161,7 @@ export default function RecipesScreen() {
                   }}
                   style={{ padding: 4 }}
                 >
-                  <Text style={{ fontSize: 18, color: "#878773" }}>✕</Text>
+                  <Text style={{ fontSize: 18, color: "#878773" }}>X</Text>
                 </Pressable>
               )}
             </View>

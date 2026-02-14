@@ -238,8 +238,8 @@ export default function ScanScreen() {
                             }}
                           >
                             {status === "forbidden"
-                              ? "⚠️ Not allowed during fasting"
-                              : "✓ Sattvic approved"}
+                              ? "Not allowed during fasting"
+                              : "Sattvic approved"}
                           </Text>
                         </View>
                         <View

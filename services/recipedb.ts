@@ -486,17 +486,21 @@ export const RecipeDBService = {
     // Check mock data first
     const mockRecipe = RECIPE_DB.find((r) => r.id === id);
     
+    // If it's a mock recipe ID (starts with "rec_"), return it directly
+    if (id.startsWith("rec_")) {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      return mockRecipe || null;
+    }
+    
     if (!USE_REAL_API) {
       await new Promise((resolve) => setTimeout(resolve, 200));
       return mockRecipe || null;
     }
 
     try {
-      console.log(`[RecipeDB] Fetching recipe ${id} from API...`);
       const apiRecipe = await RecipeDBAPIService.getRecipeById(id);
       
       if (!apiRecipe) {
-        console.log(`[RecipeDB] Recipe ${id} not found in API, checking mock data`);
         return mockRecipe || null;
       }
       
@@ -511,10 +515,8 @@ export const RecipeDBService = {
         recipe.instructions = instructions;
       }
       
-      console.log(`[RecipeDB] Successfully fetched recipe: ${recipe.name}`);
       return recipe;
     } catch (error) {
-      console.error(`[RecipeDB] Error fetching recipe ${id}:`, error);
       return mockRecipe || null;
     }
   },

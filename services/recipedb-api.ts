@@ -25,25 +25,15 @@ const recipeDBFetch = async (endpoint: string, params?: Record<string, any>, ret
       });
 
       if (!response.ok) {
-        // Don't retry on 400 errors (bad request)
-        if (response.status === 400) {
-          throw new Error(`Bad Request: ${endpoint}`);
-        }
         throw new Error(`HTTP ${response.status}`);
       }
 
       const data = await response.json();
       return data;
     } catch (error) {
-      // Don't retry on 400 errors
-      if (error instanceof Error && error.message.includes('Bad Request')) {
-        throw error;
-      }
-      
       if (attempt === retries) {
         throw error;
       }
-      // Wait before retrying
       await new Promise(resolve => setTimeout(resolve, 500));
     }
   }
@@ -51,91 +41,58 @@ const recipeDBFetch = async (endpoint: string, params?: Record<string, any>, ret
 
 // API Response Types
 export interface RecipeDBRecipe {
-  id: string;
-  title: string;
-  cuisine: string;
-  category: string;
-  cooktime: string;
-  preptime: string;
-  calories: number;
-  carbs: number;
-  fat: number;
-  protein: number;
-  ingredients: string[];
-  instructions: string[];
+  _id?: string;
+  Recipe_id: string;
+  Recipe_title: string;
+  Region?: string;
+  Sub_region?: string;
+  Continent?: string;
+  cook_time?: string;
+  prep_time?: string;
+  total_time?: string;
+  servings?: string;
+  Calories?: string;
+  "Carbohydrate, by difference (g)"?: string;
+  "Energy (kcal)"?: string;
+  "Protein (g)"?: string;
+  "Total lipid (fat) (g)"?: string;
   img_url?: string;
   url?: string;
-  cholesterol?: number;
-  fiber?: number;
-  satfat?: number;
-  sodium?: number;
-  sugar?: number;
+  Utensils?: string;
+  Processes?: string;
+  vegan?: string;
+  pescetarian?: string;
+  ovo_vegetarian?: string;
+  lacto_vegetarian?: string;
+  ovo_lacto_vegetarian?: string;
 }
 
-export interface RecipeDBNutrition {
-  calories: number;
-  carbs: number;
-  cholesterol: number;
-  fat: number;
-  fiber: number;
-  protein: number;
-  satfat: number;
-  sodium: number;
-  sugar: number;
-}
-
-export interface RecipeDBSearchResult {
-  recipe_id: string;
-  title: string;
-  cuisine: string;
-  category: string;
-  calories: number;
-  img_url?: string;
+export interface RecipeDBAPIResponse {
+  success: string;
+  message: string;
+  payload: {
+    data: RecipeDBRecipe | RecipeDBRecipe[];
+  };
 }
 
 // API Service
 export const RecipeDBAPIService = {
-  // Get recipe of the day
-  getRecipeOfTheDay: async (): Promise<RecipeDBRecipe | null> => {
+  // Get all recipes with pagination
+  getAllRecipes: async (page: number = 1, limit: number = 50): Promise<RecipeDBRecipe[]> => {
     try {
-      // This endpoint has issues, skip it
-      return null;
-    } catch (error) {
-      return null;
-    }
-  },
-
-  // Get all recipes info (paginated)
-  getAllRecipes: async (page: number = 1, limit: number = 20): Promise<RecipeDBRecipe[]> => {
-    try {
-      // Try to search for common terms to get real recipes
-      const searchTerms = ['chicken', 'pasta', 'rice', 'curry', 'salad'];
-      const randomTerm = searchTerms[Math.floor(Math.random() * searchTerms.length)];
+      const response: RecipeDBAPIResponse = await recipeDBFetch("/recipe/all-recipes", { 
+        page, 
+        limit 
+      });
       
-      const searchResults = await RecipeDBAPIService.searchByTitle(randomTerm);
-      
-      if (searchResults.length > 0) {
-        // Convert search results to full recipes
-        const recipes: RecipeDBRecipe[] = searchResults.slice(0, limit).map(result => ({
-          id: result.recipe_id,
-          title: result.title,
-          cuisine: result.cuisine,
-          category: result.category,
-          cooktime: '30',
-          preptime: '15',
-          calories: result.calories,
-          carbs: 0,
-          fat: 0,
-          protein: 0,
-          ingredients: [],
-          instructions: [],
-          img_url: result.img_url,
-        }));
-        return recipes;
+      if (response.success === "true" && response.payload?.data) {
+        const data = response.payload.data;
+        return Array.isArray(data) ? data : [data];
       }
       
       return [];
     } catch (error) {
+      console.error("Error fetching all recipes:", error);
       return [];
     }
   },
@@ -143,102 +100,101 @@ export const RecipeDBAPIService = {
   // Get recipe by ID
   getRecipeById: async (recipeId: string): Promise<RecipeDBRecipe | null> => {
     try {
-      const data = await recipeDBFetch(`/recipe/search-recipe/${recipeId}`);
-      return data;
+      const response: RecipeDBAPIResponse = await recipeDBFetch(`/recipe/recipe-by-id/${recipeId}`);
+      
+      if (response.success === "true" && response.payload?.data) {
+        const data = response.payload.data;
+        return Array.isArray(data) ? data[0] : data;
+      }
+      
+      return null;
     } catch (error) {
       console.error("Error fetching recipe by ID:", error);
       return null;
     }
   },
 
-  // Get recipe instructions
-  getRecipeInstructions: async (recipeId: string): Promise<string[]> => {
-    try {
-      const data = await recipeDBFetch(`/recipe/instructions/${recipeId}`);
-      return data.instructions || [];
-    } catch (error) {
-      console.error("Error fetching instructions:", error);
-      return [];
-    }
-  },
-
-  // Get recipe nutrition info
-  getRecipeNutrition: async (recipeId: string): Promise<RecipeDBNutrition | null> => {
-    try {
-      const data = await recipeDBFetch("/recipe/nutritioninfo", { recipe_id: recipeId });
-      return data;
-    } catch (error) {
-      console.error("Error fetching nutrition:", error);
-      return null;
-    }
-  },
-
   // Search recipes by title
-  searchByTitle: async (title: string): Promise<RecipeDBSearchResult[]> => {
+  searchByTitle: async (title: string): Promise<RecipeDBRecipe[]> => {
     try {
-      const data = await recipeDBFetch("/recipe/recipeByTitle", { title });
+      const response: RecipeDBAPIResponse = await recipeDBFetch("/recipe/search-by-title", { title });
       
-      // Handle different response formats
-      if (Array.isArray(data)) {
-        return data;
-      }
-      if (data.recipes && Array.isArray(data.recipes)) {
-        return data.recipes;
-      }
-      if (data.data && Array.isArray(data.data)) {
-        return data.data;
+      if (response.success === "true" && response.payload?.data) {
+        const data = response.payload.data;
+        return Array.isArray(data) ? data : [data];
       }
       
       return [];
     } catch (error) {
-      // Silently fail and return empty array
+      console.error("Error searching recipes:", error);
       return [];
     }
   },
 
-  // Get recipes by cuisine
-  getRecipesByCuisine: async (cuisine: string): Promise<RecipeDBRecipe[]> => {
+  // Get recipes by region
+  getRecipesByRegion: async (region: string): Promise<RecipeDBRecipe[]> => {
     try {
-      const data = await recipeDBFetch(`/recipe/recipes_cuisine/cuisine/${cuisine}`);
+      const response: RecipeDBAPIResponse = await recipeDBFetch("/recipe/recipes-by-region", { region });
       
-      // Handle different response formats
-      if (Array.isArray(data)) {
-        return data;
-      }
-      if (data.recipes && Array.isArray(data.recipes)) {
-        return data.recipes;
-      }
-      if (data.data && Array.isArray(data.data)) {
-        return data.data;
+      if (response.success === "true" && response.payload?.data) {
+        const data = response.payload.data;
+        return Array.isArray(data) ? data : [data];
       }
       
       return [];
     } catch (error) {
-      // Silently fail and return empty array
+      console.error("Error fetching recipes by region:", error);
       return [];
     }
   },
 
-  // Get recipes by category
-  getRecipesByCategory: async (category: string): Promise<RecipeDBRecipe[]> => {
+  // Get recipes by continent
+  getRecipesByContinent: async (continent: string): Promise<RecipeDBRecipe[]> => {
     try {
-      // Try as path parameter (more likely to work)
-      const data = await recipeDBFetch(`/recipe/category/${category}`);
+      const response: RecipeDBAPIResponse = await recipeDBFetch("/recipe/recipes-by-continent", { continent });
       
-      // Handle different response formats
-      if (Array.isArray(data)) {
-        return data;
-      }
-      if (data.recipes && Array.isArray(data.recipes)) {
-        return data.recipes;
-      }
-      if (data.data && Array.isArray(data.data)) {
-        return data.data;
+      if (response.success === "true" && response.payload?.data) {
+        const data = response.payload.data;
+        return Array.isArray(data) ? data : [data];
       }
       
       return [];
     } catch (error) {
-      // Silently fail and return empty array
+      console.error("Error fetching recipes by continent:", error);
+      return [];
+    }
+  },
+
+  // Get vegetarian recipes
+  getVegetarianRecipes: async (): Promise<RecipeDBRecipe[]> => {
+    try {
+      const response: RecipeDBAPIResponse = await recipeDBFetch("/recipe/vegetarian-recipes");
+      
+      if (response.success === "true" && response.payload?.data) {
+        const data = response.payload.data;
+        return Array.isArray(data) ? data : [data];
+      }
+      
+      return [];
+    } catch (error) {
+      console.error("Error fetching vegetarian recipes:", error);
+      return [];
+    }
+  },
+
+  // Get vegan recipes
+  getVeganRecipes: async (): Promise<RecipeDBRecipe[]> => {
+    try {
+      const response: RecipeDBAPIResponse = await recipeDBFetch("/recipe/vegan-recipes");
+      
+      if (response.success === "true" && response.payload?.data) {
+        const data = response.payload.data;
+        return Array.isArray(data) ? data : [data];
+      }
+      
+      return [];
+    } catch (error) {
+      console.error("Error fetching vegan recipes:", error);
       return [];
     }
   },

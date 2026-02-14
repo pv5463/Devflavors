@@ -1,523 +1,133 @@
-import { Recipe, MythologicalStory } from "../types";
-import { RecipeDBAPIService, RecipeDBRecipe, RecipeDBNutrition } from "./recipedb-api";
+import { Recipe } from "../types";
+import { RecipeAPIService, FoodoscopeRecipe } from "./foodoscope-api";
+import mockRecipesData from "./mock-recipes.json";
 
-// Feature flag to toggle between mock and real API
-const USE_REAL_API = true;
+// Cast mock data to FoodoscopeRecipe array
+const MOCK_RECIPES = mockRecipesData as FoodoscopeRecipe[];
 
-// Mythological Stories Database
-const MYTHOLOGY_DB: Record<string, MythologicalStory> = {
-  sabudana_khichdi: {
-    title: "The Divine Food of Lord Shiva",
-    deity: "Lord Shiva",
-    story: "During the great churning of the ocean (Samudra Manthan), when Lord Shiva consumed the deadly poison Halahala to save the universe, Goddess Parvati offered him Sabudana Khichdi to soothe his burning throat. The cooling properties of tapioca pearls and the purity of rock salt helped neutralize the poison's effects. Since then, Sabudana has been considered a sacred fasting food, blessed by Lord Shiva himself.",
-    significance: "Sabudana represents purity and simplicity. Its white color symbolizes the divine light of consciousness, while its ability to provide sustained energy during fasting represents spiritual strength. Consuming this during Mahashivratri connects devotees to Lord Shiva's sacrifice for humanity.",
-    ritual: "Prepare Sabudana Khichdi before sunrise on fasting days. Offer it to Lord Shiva with bilva leaves and pure water. Chant 'Om Namah Shivaya' 108 times before consuming.",
-    benefits: [
-      "Enhances spiritual awareness and meditation depth",
-      "Purifies the body and mind for divine connection",
-      "Provides sustained energy for long prayer sessions",
-      "Balances the throat chakra (Vishuddha)",
-      "Promotes mental clarity and focus"
-    ]
-  },
-  singhare_poori: {
-    title: "Goddess Durga's Blessed Grain",
-    deity: "Goddess Durga",
-    story: "Legend says that during Navratri, when Goddess Durga descended to Earth to battle the demon Mahishasura, she blessed the water chestnut (Singhara) growing in sacred ponds. The goddess infused these nuts with divine energy to sustain her devotees during the nine nights of worship. Warriors who consumed Singhara flour gained extraordinary strength and mental clarity to support the goddess in her cosmic battle.",
-    significance: "Water chestnuts grow in pure water, symbolizing the purity required during Navratri. Their ability to grow in water represents adaptability and resilience - qualities embodied by Goddess Durga. The flour's cooling nature balances the intense spiritual heat generated during fasting.",
-    ritual: "On the first day of Navratri, wash Singhara flour with Ganga jal (holy water). While preparing pooris, chant the Durga Chalisa. Offer the first poori to the goddess before consuming.",
-    benefits: [
-      "Awakens the divine feminine energy (Shakti)",
-      "Strengthens willpower and determination",
-      "Enhances courage to face life's challenges",
-      "Balances all seven chakras",
-      "Protects against negative energies"
-    ]
-  },
-  makhana_kheer: {
-    title: "Goddess Lakshmi's Prosperity Offering",
-    deity: "Goddess Lakshmi",
-    story: "In ancient times, when the gods sought Goddess Lakshmi's blessings for prosperity, she revealed that Makhana (fox nuts) were her favorite offering. These lotus seeds, born from the sacred lotus flower on which she sits, carry her divine essence. Sages discovered that preparing Makhana in milk and sweetening it with jaggery creates a dessert that attracts wealth, health, and happiness. During Ekadashi, offering Makhana Kheer to Lord Vishnu and Goddess Lakshmi ensures their blessings for the entire family.",
-    significance: "Makhana grows from the lotus, the seat of Goddess Lakshmi. Each seed represents a blessing of abundance. The white color signifies purity of intentions, while the creamy texture represents the flow of prosperity. Consuming this kheer during fasting opens channels for divine grace.",
-    ritual: "Prepare Makhana Kheer on Ekadashi evening. Light a ghee lamp and offer the kheer with tulsi leaves. Recite the Lakshmi Ashtakam before distribution. Share with family and neighbors to multiply blessings.",
-    benefits: [
-      "Attracts wealth and material prosperity",
-      "Enhances mental peace and contentment",
-      "Strengthens family bonds and harmony",
-      "Improves concentration for spiritual practices",
-      "Balances the heart chakra (Anahata)"
-    ]
-  },
-  sattvic_dal: {
-    title: "The Sage's Wisdom Food",
-    deity: "Sage Vishwamitra",
-    story: "Sage Vishwamitra, during his intense penance to become a Brahmarishi, survived on simple moong dal cooked with pure ingredients. The dal's golden color reminded him of divine light, and its easy digestibility allowed him to maintain deep meditation for years. When he finally achieved enlightenment, he blessed moong dal as the perfect food for spiritual seekers. He taught that dal prepared without onion and garlic keeps the mind pure and receptive to higher consciousness.",
-    significance: "Yellow moong dal represents the golden light of wisdom (Jnana). Its split form symbolizes the breaking of ego, while its ability to nourish without heaviness represents spiritual sustenance. The dal's protein content supports the body during fasting without disturbing mental clarity.",
-    ritual: "Before cooking dal, meditate for 5 minutes holding the dal in your palms. Visualize golden light entering the grains. Cook with pure intentions and offer to your chosen deity before consuming.",
-    benefits: [
-      "Enhances wisdom and spiritual understanding",
-      "Purifies the subtle energy body",
-      "Supports long meditation sessions",
-      "Balances the solar plexus chakra (Manipura)",
-      "Promotes emotional stability and peace"
-    ]
-  },
-  aloo_jeera: {
-    title: "Lord Krishna's Favorite Simple Meal",
-    deity: "Lord Krishna",
-    story: "When Lord Krishna lived in Vrindavan, Mother Yashoda would prepare simple Aloo Jeera for him using potatoes from their garden and cumin from the fields. Krishna loved this dish because it reminded him of the earth's bounty and the simple joys of life. He once said that elaborate dishes feed only the body, but simple, pure food prepared with love feeds the soul. During his teachings in the Bhagavad Gita, he emphasized that Sattvic food like Aloo Jeera promotes clarity, strength, and spiritual growth.",
-    significance: "Potatoes grow underground, symbolizing humility and groundedness. Cumin seeds represent the tiny but powerful nature of devotion. Together, they create a dish that nourishes while keeping one connected to earthly wisdom and divine love.",
-    ritual: "While preparing Aloo Jeera, sing bhajans or chant Krishna's names. Offer the first serving to Krishna's image with tulsi leaves. Share the meal with others to spread Krishna's love.",
-    benefits: [
-      "Promotes humility and gratitude",
-      "Grounds spiritual energy in daily life",
-      "Enhances devotion and bhakti",
-      "Balances the root chakra (Muladhara)",
-      "Brings joy and contentment"
-    ]
-  },
-  paneer_bhurji: {
-    title: "The Protein of the Himalayas",
-    deity: "Lord Shiva (as Bholenath)",
-    story: "In the Himalayan regions where Lord Shiva meditated, yogis discovered that paneer (cottage cheese) provided the perfect protein for maintaining physical strength during intense spiritual practices. The bhurji (scrambled) form was created by wandering sadhus who needed quick, nourishing meals. They learned to prepare it without onion and garlic to maintain their meditative state. Lord Shiva blessed this preparation, making it a favorite among spiritual seekers in the mountains.",
-    significance: "Paneer's white color represents purity and the snow-capped Himalayas where Shiva resides. Its high protein content supports the physical body during spiritual austerities. The scrambled form represents the breaking down of ego and material attachments.",
-    ritual: "Prepare Paneer Bhurji with mindfulness, treating each ingredient as sacred. Offer to Shiva with bael leaves. Consume while maintaining silence to honor the meditative quality of the dish.",
-    benefits: [
-      "Builds physical strength for spiritual practices",
-      "Enhances endurance during fasting",
-      "Supports muscle health for yoga and meditation",
-      "Balances the sacral chakra (Svadhisthana)",
-      "Promotes inner peace and stability"
-    ]
-  }
-};
+// Helper function to convert Foodoscope API format to our Recipe type
+function convertFoodoscopeToRecipe(apiRecipe: FoodoscopeRecipe): Recipe {
+  // Parse numeric values safely
+  const parseNumber = (value: string | undefined, defaultValue: number = 0): number => {
+    if (!value) return defaultValue;
+    const parsed = parseFloat(value);
+    return isNaN(parsed) ? defaultValue : parsed;
+  };
 
-// Mock Recipe Database with Sattvic modifications (fallback)
-const RECIPE_DB: Recipe[] = [
-  {
-    id: "rec_001",
-    name: "Aloo Jeera (Cumin Potatoes)",
-    description:
-      "Classic Indian comfort food with crispy cumin-crusted potatoes. Traditional recipe calls for onion and garlic, but this version uses hing and extra cumin for the same aromatic base.",
-    cuisine: "North Indian",
-    category: "Main Course",
-    prepTime: 10,
-    cookTime: 20,
-    servings: 4,
-    ingredients: [
-      { item: "Potatoes", quantity: "500g", isForbidden: false },
-      { item: "Onion", quantity: "1 large", isForbidden: true, substitute: "Asafoetida (pinch) + 2 tbsp Cumin" },
-      { item: "Garlic", quantity: "3 cloves", isForbidden: true, substitute: "1/2 tsp Ginger paste + pinch of Hing" },
-      { item: "Cumin seeds", quantity: "2 tbsp", isForbidden: false },
-      { item: "Asafoetida (Hing)", quantity: "1/4 tsp", isForbidden: false },
-      { item: "Turmeric", quantity: "1/2 tsp", isForbidden: false },
-      { item: "Green chilies", quantity: "2", isForbidden: false },
-      { item: "Coriander powder", quantity: "1 tsp", isForbidden: false },
-      { item: "Fresh coriander", quantity: "handful", isForbidden: false },
-      { item: "Oil", quantity: "3 tbsp", isForbidden: false },
-      { item: "Salt", quantity: "to taste", isForbidden: false },
-    ],
-    instructions: [
-      "Boil potatoes until 80% cooked, peel and cube into 1-inch pieces.",
-      "Heat oil in a wide pan. Add cumin seeds and let them crackle.",
-      "Add asafoetida and immediately add potatoes. Sauté on medium-high heat.",
-      "Add turmeric, coriander powder, and salt. Mix well.",
-      "Cook until potatoes are golden and crispy on edges (8-10 minutes).",
-      "Garnish with fresh coriander and serve hot.",
-    ],
-    nutrition: { calories: 220, protein: 4, carbs: 35, fat: 8 },
-    sattvicStatus: "modified",
-    tags: ["navratri", "ekadashi", "comfort-food", "quick"],
-    fastingType: "general",
-    mythology: MYTHOLOGY_DB.aloo_jeera,
-  },
-  {
-    id: "rec_002",
-    name: "Sattvic Dal (No Onion/Garlic)",
-    description:
-      "A pure Sattvic yellow lentil curry. The secret is the ginger-cumin tempering with a hint of hing that creates depth without tamasic ingredients.",
-    cuisine: "North Indian",
-    category: "Main Course",
-    prepTime: 15,
-    cookTime: 30,
-    servings: 4,
-    ingredients: [
-      { item: "Yellow moong dal", quantity: "1 cup", isForbidden: false },
-      { item: "Tomatoes", quantity: "2 medium", isForbidden: false },
-      { item: "Ginger", quantity: "1 inch", isForbidden: false },
-      { item: "Green chilies", quantity: "2", isForbidden: false },
-      { item: "Turmeric", quantity: "1/2 tsp", isForbidden: false },
-      { item: "Cumin seeds", quantity: "1 tsp", isForbidden: false },
-      { item: "Asafoetida", quantity: "1/4 tsp", isForbidden: false },
-      { item: "Ghee", quantity: "2 tbsp", isForbidden: false },
-      { item: "Coriander powder", quantity: "1 tsp", isForbidden: false },
-      { item: "Salt", quantity: "to taste", isForbidden: false },
-      { item: "Fresh coriander", quantity: "handful", isForbidden: false },
-    ],
-    instructions: [
-      "Wash and pressure cook dal with turmeric and salt for 3 whistles.",
-      "Mash the cooked dal until smooth and creamy.",
-      "Heat ghee in a pan. Add cumin seeds and let them sizzle.",
-      "Add asafoetida, grated ginger, and green chilies. Sauté for 30 seconds.",
-      "Add chopped tomatoes and cook until soft.",
-      "Add coriander powder and mix well.",
-      "Pour this tempering over the cooked dal and simmer for 5 minutes.",
-      "Garnish with fresh coriander leaves.",
-    ],
-    nutrition: { calories: 180, protein: 12, carbs: 28, fat: 6 },
-    sattvicStatus: "pure",
-    tags: ["navratri", "ekadashi", "protein", "comfort-food"],
-    fastingType: "ekadashi",
-    mythology: MYTHOLOGY_DB.sattvic_dal,
-  },
-  {
-    id: "rec_003",
-    name: "Paneer Bhurji (Scrambled Paneer)",
-    description:
-      "Scrambled paneer with aromatic spices. Uses kasuri methi and extra ginger to replace the usual onion-garlic base while maintaining the rich flavor.",
-    cuisine: "North Indian",
-    category: "Main Course",
-    prepTime: 10,
-    cookTime: 15,
-    servings: 3,
-    ingredients: [
-      { item: "Paneer", quantity: "250g", isForbidden: false },
-      { item: "Onion", quantity: "1", isForbidden: true, substitute: "1 tbsp Kasuri Methi + extra ginger" },
-      { item: "Garlic", quantity: "2 cloves", isForbidden: true, substitute: "1/2 tsp Hing in oil" },
-      { item: "Tomatoes", quantity: "2", isForbidden: false },
-      { item: "Ginger", quantity: "1 tbsp grated", isForbidden: false },
-      { item: "Green chilies", quantity: "2", isForbidden: false },
-      { item: "Cumin seeds", quantity: "1 tsp", isForbidden: false },
-      { item: "Turmeric", quantity: "1/4 tsp", isForbidden: false },
-      { item: "Coriander powder", quantity: "1 tsp", isForbidden: false },
-      { item: "Garam masala", quantity: "1/2 tsp", isForbidden: false },
-      { item: "Kasuri Methi", quantity: "1 tbsp", isForbidden: false },
-      { item: "Oil", quantity: "2 tbsp", isForbidden: false },
-      { item: "Salt", quantity: "to taste", isForbidden: false },
-    ],
-    instructions: [
-      "Crumble paneer into small pieces. Set aside.",
-      "Heat oil, add cumin seeds and let them crackle.",
-      "Add hing and grated ginger. Sauté for 30 seconds.",
-      "Add chopped tomatoes and green chilies. Cook until tomatoes soften.",
-      "Add turmeric, coriander powder, and salt. Mix well.",
-      "Add crumbled paneer and toss everything together.",
-      "Crush kasuri methi between palms and sprinkle over the bhurji.",
-      "Add garam masala and cook for 2 more minutes.",
-    ],
-    nutrition: { calories: 280, protein: 18, carbs: 8, fat: 20 },
-    sattvicStatus: "modified",
-    tags: ["navratri", "ekadashi", "high-protein", "quick"],
-    fastingType: "general",
-    mythology: MYTHOLOGY_DB.paneer_bhurji,
-  },
-  {
-    id: "rec_004",
-    name: "Sattvic Vegetable Pulao",
-    description:
-      "A fragrant one-pot rice dish with vegetables. Cumin and whole spices provide the aromatic backbone without any onion or garlic.",
-    cuisine: "North Indian",
-    category: "Rice Dish",
-    prepTime: 15,
-    cookTime: 25,
-    servings: 4,
-    ingredients: [
-      { item: "Basmati rice", quantity: "1.5 cups", isForbidden: false },
-      { item: "Mixed vegetables", quantity: "2 cups", isForbidden: false },
-      { item: "Onion", quantity: "1", isForbidden: true, substitute: "2 tbsp fried cashews (garnish)" },
-      { item: "Cumin seeds", quantity: "1.5 tsp", isForbidden: false },
-      { item: "Bay leaf", quantity: "1", isForbidden: false },
-      { item: "Cinnamon", quantity: "1 inch", isForbidden: false },
-      { item: "Cloves", quantity: "3", isForbidden: false },
-      { item: "Cardamom", quantity: "2", isForbidden: false },
-      { item: "Ginger", quantity: "1 inch", isForbidden: false },
-      { item: "Green chilies", quantity: "2", isForbidden: false },
-      { item: "Turmeric", quantity: "1/4 tsp", isForbidden: false },
-      { item: "Ghee", quantity: "2 tbsp", isForbidden: false },
-      { item: "Salt", quantity: "to taste", isForbidden: false },
-    ],
-    instructions: [
-      "Wash and soak rice for 20 minutes.",
-      "Heat ghee in a pressure cooker or pot.",
-      "Add whole spices (cumin, bay leaf, cinnamon, cloves, cardamom).",
-      "Add slit green chilies and grated ginger. Sauté for 30 seconds.",
-      "Add mixed vegetables and sauté for 2 minutes.",
-      "Add soaked rice, turmeric, and salt. Mix gently.",
-      "Add 3 cups water and pressure cook for 2 whistles or cook covered until done.",
-      "Let rest for 5 minutes, then fluff with fork.",
-    ],
-    nutrition: { calories: 320, protein: 8, carbs: 58, fat: 8 },
-    sattvicStatus: "modified",
-    tags: ["navratri", "ekadashi", "one-pot", "festival"],
-  },
-  {
-    id: "rec_005",
-    name: "Mint-Coriander Chutney",
-    description:
-      "Fresh green chutney that's naturally Sattvic. Bright, tangy, and perfect for fasting days.",
-    cuisine: "Indian",
-    category: "Accompaniment",
-    prepTime: 5,
-    cookTime: 0,
-    servings: 6,
-    ingredients: [
-      { item: "Fresh mint leaves", quantity: "1 cup", isForbidden: false },
-      { item: "Fresh coriander", quantity: "1 cup", isForbidden: false },
-      { item: "Green chilies", quantity: "2", isForbidden: false },
-      { item: "Ginger", quantity: "1 inch", isForbidden: false },
-      { item: "Lemon juice", quantity: "2 tbsp", isForbidden: false },
-      { item: "Cumin powder", quantity: "1/2 tsp", isForbidden: false },
-      { item: "Black salt", quantity: "1/2 tsp", isForbidden: false },
-      { item: "Water", quantity: "2-3 tbsp", isForbidden: false },
-    ],
-    instructions: [
-      "Wash and clean mint and coriander leaves thoroughly.",
-      "Blend all ingredients with minimal water until smooth.",
-      "Adjust consistency and seasoning to taste.",
-      "Serve fresh with snacks or meals.",
-    ],
-    nutrition: { calories: 15, protein: 1, carbs: 3, fat: 0 },
-    sattvicStatus: "pure",
-    tags: ["navratri", "ekadashi", "raw", "accompaniment"],
-  },
-  {
-    id: "rec_006",
-    name: "Sabudana Khichdi",
-    description:
-      "A fasting favorite made with tapioca pearls, peanuts, and potatoes. Naturally Sattvic and perfect for Navratri.",
-    cuisine: "North Indian",
-    category: "Breakfast",
-    prepTime: 30,
-    cookTime: 15,
-    servings: 3,
-    ingredients: [
-      { item: "Sabudana (tapioca pearls)", quantity: "1 cup", isForbidden: false },
-      { item: "Peanuts", quantity: "1/2 cup", isForbidden: false },
-      { item: "Potatoes", quantity: "2 medium", isForbidden: false },
-      { item: "Cumin seeds", quantity: "1 tsp", isForbidden: false },
-      { item: "Green chilies", quantity: "2", isForbidden: false },
-      { item: "Curry leaves", quantity: "8-10 leaves", isForbidden: false },
-      { item: "Lemon juice", quantity: "1 tbsp", isForbidden: false },
-      { item: "Rock salt (sendha namak)", quantity: "to taste", isForbidden: false },
-      { item: "Ghee", quantity: "2 tbsp", isForbidden: false },
-    ],
-    instructions: [
-      "Soak sabudana in water for 4-6 hours or overnight. Drain well.",
-      "Roast peanuts, peel and coarsely crush them.",
-      "Cube potatoes and microwave or boil until tender.",
-      "Mix soaked sabudana with peanuts, salt, and lemon juice.",
-      "Heat ghee, add cumin, curry leaves, and green chilies.",
-      "Add potatoes and sauté for a minute.",
-      "Add sabudana mixture and cook on low, stirring gently, until pearls turn translucent.",
-    ],
-    nutrition: { calories: 350, protein: 8, carbs: 55, fat: 12 },
-    sattvicStatus: "pure",
-    tags: ["navratri", "ekadashi", "fasting", "breakfast"],
-    fastingType: "navratri",
-    mythology: MYTHOLOGY_DB.sabudana_khichdi,
-  },
-  {
-    id: "rec_007",
-    name: "Singhare ke Atte ki Poori",
-    description:
-      "Crispy deep-fried bread made from water chestnut flour. Perfect for fasting days with any curry.",
-    cuisine: "North Indian",
-    category: "Bread",
-    prepTime: 10,
-    cookTime: 15,
-    servings: 4,
-    ingredients: [
-      { item: "Singhara atta (water chestnut flour)", quantity: "2 cups", isForbidden: false },
-      { item: "Sendha namak", quantity: "1 tsp", isForbidden: false },
-      { item: "Cumin powder", quantity: "1/2 tsp", isForbidden: false },
-      { item: "Black pepper", quantity: "1/4 tsp", isForbidden: false },
-      { item: "Warm water", quantity: "as needed", isForbidden: false },
-      { item: "Ghee/oil for frying", quantity: "for deep frying", isForbidden: false },
-    ],
-    instructions: [
-      "Mix flour with salt, cumin powder, and black pepper.",
-      "Add warm water gradually to make a firm dough.",
-      "Knead well and rest for 10 minutes.",
-      "Divide into small balls and roll into pooris.",
-      "Deep fry in hot oil until golden and puffed.",
-      "Serve hot with curry or yogurt.",
-    ],
-    nutrition: { calories: 180, protein: 3, carbs: 28, fat: 7 },
-    sattvicStatus: "pure",
-    tags: ["navratri", "ekadashi", "fasting", "bread"],
-    fastingType: "navratri",
-    mythology: MYTHOLOGY_DB.singhare_poori,
-  },
-  {
-    id: "rec_008",
-    name: "Makhana Kheer",
-    description:
-      "Creamy fox nut pudding sweetened with jaggery or sugar. A delicious dessert for fasting days.",
-    cuisine: "North Indian",
-    category: "Dessert",
-    prepTime: 5,
-    cookTime: 25,
-    servings: 4,
-    ingredients: [
-      { item: "Makhana (fox nuts)", quantity: "2 cups", isForbidden: false },
-      { item: "Milk", quantity: "1 liter", isForbidden: false },
-      { item: "Sugar/jaggery", quantity: "1/2 cup", isForbidden: false },
-      { item: "Cardamom powder", quantity: "1/4 tsp", isForbidden: false },
-      { item: "Cashews", quantity: "10-12", isForbidden: false },
-      { item: "Almonds", quantity: "10-12", isForbidden: false },
-      { item: "Ghee", quantity: "1 tbsp", isForbidden: false },
-      { item: "Saffron strands", quantity: "few", isForbidden: false },
-    ],
-    instructions: [
-      "Roast makhana in ghee until crisp. Coarsely crush half of them.",
-      "Boil milk in a heavy-bottomed pan.",
-      "Add crushed makhana and cook until milk thickens.",
-      "Add sugar and cardamom powder. Simmer for 5 minutes.",
-      "Fry cashews and almonds in ghee until golden.",
-      "Add whole makhana, nuts, and saffron to the kheer.",
-      "Serve warm or chilled.",
-    ],
-    nutrition: { calories: 280, protein: 10, carbs: 40, fat: 10 },
-    sattvicStatus: "pure",
-    tags: ["navratri", "ekadashi", "dessert", "sweet"],
-    fastingType: "ekadashi",
-    mythology: MYTHOLOGY_DB.makhana_kheer,
-  },
-];
-
-// Helper function to convert RecipeDB API format to our Recipe type
-function convertRecipeDBToRecipe(apiRecipe: RecipeDBRecipe, nutrition?: RecipeDBNutrition | null): Recipe {
-  // Check for forbidden ingredients in the recipe
-  const forbiddenKeywords = ["onion", "garlic", "shallots", "leeks", "chives"];
-  const ingredients = apiRecipe.ingredients?.map((ing: string) => {
-    const isForbidden = forbiddenKeywords.some(keyword => 
-      ing.toLowerCase().includes(keyword)
-    );
-    return {
-      item: ing,
-      quantity: "as per recipe",
-      isForbidden,
-      substitute: isForbidden ? "See substitution guide" : undefined,
-    };
-  }) || [];
-
-  const forbiddenCount = ingredients.filter(i => i.isForbidden).length;
+  // Check for forbidden ingredients (onion, garlic, meat, etc.)
+  const forbiddenKeywords = ["onion", "garlic", "shallot", "leek", "chive", "meat", "chicken", "beef", "pork", "fish", "egg"];
   
+  // Convert ingredients
+  const ingredients = (apiRecipe.ingredients || []).map(ing => {
+    const isForbidden = forbiddenKeywords.some(keyword => 
+      ing.ingredient.toLowerCase().includes(keyword)
+    );
+    
+    return {
+      item: ing.ingredient,
+      quantity: ing.phrase || `${ing.quantity || ''} ${ing.unit || ''}`.trim(),
+      isForbidden,
+      substitute: isForbidden ? "See Sattvic substitution guide" : undefined,
+    };
+  });
+
+  // Parse utensils and processes for instructions
+  const processes = apiRecipe.Processes?.split("||").filter(Boolean) || [];
+  const instructions = processes.length > 0
+    ? processes.map((process, idx) => 
+        `Step ${idx + 1}: ${process.charAt(0).toUpperCase() + process.slice(1)} the ingredients as needed.`
+      )
+    : ["Follow the recipe instructions from the source."];
+
+  // Determine if recipe is vegetarian/vegan
+  const isVegan = apiRecipe.vegan === "1.0" || apiRecipe.vegan === "1";
+  const isVegetarian = apiRecipe.ovo_lacto_vegetarian === "1.0" || apiRecipe.lacto_vegetarian === "1.0";
+  
+  // Determine cuisine and category
+  const cuisine = apiRecipe.Region || apiRecipe.Sub_region || apiRecipe.Continent || "International";
+  const category = isVegan ? "Vegan" : isVegetarian ? "Vegetarian" : "Main Course";
+
+  // Calculate prep and cook times
+  const totalTime = parseNumber(apiRecipe.total_time, 45);
+  const prepTime = parseNumber(apiRecipe.prep_time, Math.floor(totalTime * 0.3));
+  const cookTime = parseNumber(apiRecipe.cook_time, totalTime - prepTime);
+
+  // Check if recipe has forbidden ingredients
+  const hasForbidden = ingredients.some(i => i.isForbidden);
+
   return {
-    id: apiRecipe.id || apiRecipe.url || `api_${Date.now()}`,
-    name: apiRecipe.title || "Untitled Recipe",
-    description: `${apiRecipe.cuisine || 'Various'} ${apiRecipe.category || 'Recipe'}. ${
-      forbiddenCount > 0 
-        ? `Contains ${forbiddenCount} ingredient(s) that need substitution for Sattvic diet.` 
-        : 'Sattvic-compliant recipe.'
-    }`,
-    cuisine: apiRecipe.cuisine || "International",
-    category: apiRecipe.category || "Main Course",
-    prepTime: parseInt(apiRecipe.preptime) || 15,
-    cookTime: parseInt(apiRecipe.cooktime) || 20,
-    servings: 4,
+    id: apiRecipe.Recipe_id || apiRecipe._id || `api_${Date.now()}`,
+    name: apiRecipe.Recipe_title || "Untitled Recipe",
+    description: `Delicious ${cuisine} recipe. ${isVegan ? 'Vegan-friendly.' : isVegetarian ? 'Vegetarian-friendly.' : ''} ${hasForbidden ? 'Contains ingredients that need Sattvic substitution.' : 'Sattvic-compliant.'}`,
+    cuisine,
+    category,
+    prepTime,
+    cookTime,
+    servings: parseNumber(apiRecipe.servings, 4),
     ingredients,
-    instructions: apiRecipe.instructions || [],
+    instructions,
     nutrition: {
-      calories: nutrition?.calories || apiRecipe.calories || 0,
-      protein: nutrition?.protein || apiRecipe.protein || 0,
-      carbs: nutrition?.carbs || apiRecipe.carbs || 0,
-      fat: nutrition?.fat || apiRecipe.fat || 0,
+      calories: parseNumber(apiRecipe["Energy (kcal)"] || apiRecipe.Calories, 0),
+      protein: parseNumber(apiRecipe["Protein (g)"], 0),
+      carbs: parseNumber(apiRecipe["Carbohydrate, by difference (g)"], 0),
+      fat: parseNumber(apiRecipe["Total lipid (fat) (g)"], 0),
     },
-    sattvicStatus: forbiddenCount > 0 ? "modified" : "pure",
-    tags: [apiRecipe.cuisine?.toLowerCase(), apiRecipe.category?.toLowerCase()].filter(Boolean) as string[],
+    sattvicStatus: hasForbidden ? "modified" : (isVegan || isVegetarian ? "pure" : "modified"),
+    tags: [
+      cuisine.toLowerCase().replace(/\s+/g, '-'),
+      category.toLowerCase(),
+      isVegan ? "vegan" : "",
+      isVegetarian ? "vegetarian" : "",
+      hasForbidden ? "" : "sattvic",
+    ].filter(Boolean),
   };
 }
 
-// Helper function to convert search results
-function convertSearchResultToRecipe(searchResult: any): Recipe {
-  return {
-    id: searchResult.recipe_id || searchResult.id || `search_${Date.now()}`,
-    name: searchResult.title || "Untitled Recipe",
-    description: `${searchResult.cuisine || 'Various'} ${searchResult.category || 'Recipe'}`,
-    cuisine: searchResult.cuisine || "International",
-    category: searchResult.category || "Main Course",
-    prepTime: 15,
-    cookTime: 20,
-    servings: 4,
-    ingredients: [],
-    instructions: [],
-    nutrition: {
-      calories: searchResult.calories || 0,
-      protein: 0,
-      carbs: 0,
-      fat: 0,
-    },
-    sattvicStatus: "pure",
-    tags: [searchResult.cuisine?.toLowerCase(), searchResult.category?.toLowerCase()].filter(Boolean) as string[],
-  };
-}
-
-// Main RecipeDB Service with API integration
+// Main RecipeDB Service with real API integration
 export const RecipeDBService = {
-  // Get all recipes - uses API if enabled
+  // Get all recipes - uses real API only
   getAllRecipes: async (): Promise<Recipe[]> => {
-    if (!USE_REAL_API) {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      return RECIPE_DB;
-    }
-
     try {
-      const apiRecipes = await RecipeDBAPIService.getAllRecipes(1, 50);
+      const apiRecipes = await RecipeAPIService.getAllRecipes(1, 100);
       
       if (apiRecipes.length === 0) {
-        // Return mock data if API returns nothing
-        return RECIPE_DB;
+        // Fallback to mock recipes if API returns nothing
+        console.log("[RecipeDB] API returned no recipes, using mock data");
+        return MOCK_RECIPES.map(convertFoodoscopeToRecipe);
       }
 
-      // Convert API recipes
-      const recipes = apiRecipes.map(apiRecipe => convertRecipeDBToRecipe(apiRecipe, null));
-      
-      // Combine API recipes with mock data for better experience
-      return [...recipes, ...RECIPE_DB];
+      const recipes = apiRecipes.map(apiRecipe => convertFoodoscopeToRecipe(apiRecipe));
+      return recipes;
     } catch (error) {
-      // Always return mock data on error
-      return RECIPE_DB;
+      // Fallback to mock recipes on error
+      console.log("[RecipeDB] API error, using mock data");
+      return MOCK_RECIPES.map(convertFoodoscopeToRecipe);
     }
   },
 
   // Get recipe by ID
   getRecipeById: async (id: string): Promise<Recipe | null> => {
-    // Check mock data first
-    const mockRecipe = RECIPE_DB.find((r) => r.id === id);
-    
-    // If it's a mock recipe ID (starts with "rec_"), return it directly
-    if (id.startsWith("rec_")) {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      return mockRecipe || null;
-    }
-    
-    if (!USE_REAL_API) {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      return mockRecipe || null;
-    }
-
     try {
-      const apiRecipe = await RecipeDBAPIService.getRecipeById(id);
+      const apiRecipe = await RecipeAPIService.getRecipeById(id);
       
       if (!apiRecipe) {
-        return mockRecipe || null;
+        // Check mock recipes
+        const mockRecipe = MOCK_RECIPES.find(r => r.Recipe_id === id);
+        if (mockRecipe) {
+          return convertFoodoscopeToRecipe(mockRecipe);
+        }
+        return null;
       }
       
-      // Fetch additional details
-      const [nutrition, instructions] = await Promise.all([
-        RecipeDBAPIService.getRecipeNutrition(id).catch(() => null),
-        RecipeDBAPIService.getRecipeInstructions(id).catch(() => []),
-      ]);
-      
-      const recipe = convertRecipeDBToRecipe(apiRecipe, nutrition);
-      if (instructions && instructions.length > 0) {
-        recipe.instructions = instructions;
-      }
-      
+      const recipe = convertFoodoscopeToRecipe(apiRecipe);
       return recipe;
     } catch (error) {
-      return mockRecipe || null;
+      // Check mock recipes on error
+      const mockRecipe = MOCK_RECIPES.find(r => r.Recipe_id === id);
+      if (mockRecipe) {
+        return convertFoodoscopeToRecipe(mockRecipe);
+      }
+      return null;
     }
   },
 
@@ -527,66 +137,53 @@ export const RecipeDBService = {
       return RecipeDBService.getAllRecipes();
     }
 
-    if (!USE_REAL_API) {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      const lowerQuery = query.toLowerCase();
-      return RECIPE_DB.filter(
-        (r) =>
-          r.name.toLowerCase().includes(lowerQuery) ||
-          r.description.toLowerCase().includes(lowerQuery) ||
-          r.tags.some((t) => t.includes(lowerQuery)) ||
-          r.ingredients.some((i) => i.item.toLowerCase().includes(lowerQuery))
-      );
-    }
-
     try {
-      const searchResults = await RecipeDBAPIService.searchByTitle(query);
+      const searchResults = await RecipeAPIService.searchByTitle(query);
       
       if (searchResults.length === 0) {
-        // Fallback to local search
-        const lowerQuery = query.toLowerCase();
-        return RECIPE_DB.filter(
-          (r) =>
-            r.name.toLowerCase().includes(lowerQuery) ||
-            r.description.toLowerCase().includes(lowerQuery)
-        );
+        return [];
       }
       
-      const apiRecipes = searchResults.map(convertSearchResultToRecipe);
-      
-      // Also include matching mock recipes
-      const lowerQuery = query.toLowerCase();
-      const mockMatches = RECIPE_DB.filter(
-        (r) =>
-          r.name.toLowerCase().includes(lowerQuery) ||
-          r.description.toLowerCase().includes(lowerQuery)
-      );
-      
-      return [...apiRecipes, ...mockMatches];
+      const recipes = searchResults.map(convertFoodoscopeToRecipe);
+      return recipes;
     } catch (error) {
-      // Always return mock data on error
-      const lowerQuery = query.toLowerCase();
-      return RECIPE_DB.filter(
-        (r) =>
-          r.name.toLowerCase().includes(lowerQuery) ||
-          r.description.toLowerCase().includes(lowerQuery)
-      );
+      return [];
     }
   },
 
-  // Get recipes by tag (uses category/cuisine endpoints)
+  // Get recipes by tag (uses region/diet type)
   getRecipesByTag: async (tag: string): Promise<Recipe[]> => {
-    // Always return mock data for tags since API endpoints are unreliable
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    return RECIPE_DB.filter((r) => r.tags.includes(tag.toLowerCase()));
+    try {
+      // Map tags to API calls
+      if (tag === "vegetarian") {
+        const apiRecipes = await RecipeAPIService.getVegetarianRecipes();
+        return apiRecipes.map(convertFoodoscopeToRecipe);
+      }
+      
+      if (tag === "vegan") {
+        const apiRecipes = await RecipeAPIService.getVeganRecipes();
+        return apiRecipes.map(convertFoodoscopeToRecipe);
+      }
+      
+      // For other tags, just return all recipes and let the UI filter
+      // since the API doesn't support custom tags like "navratri", "ekadashi"
+      return RecipeDBService.getAllRecipes();
+    } catch (error) {
+      return [];
+    }
   },
 
-  // Get Sattvic-safe recipes
+  // Get Sattvic-safe recipes (vegetarian/vegan only)
   getSattvicRecipes: async (): Promise<Recipe[]> => {
-    const allRecipes = await RecipeDBService.getAllRecipes();
-    return allRecipes.filter(
-      (r) => r.sattvicStatus === "pure" || r.sattvicStatus === "modified"
-    );
+    try {
+      const apiRecipes = await RecipeAPIService.getVegetarianRecipes();
+      const recipes = apiRecipes.map(convertFoodoscopeToRecipe);
+      
+      // Filter out recipes with forbidden ingredients
+      return recipes.filter(r => r.sattvicStatus === "pure");
+    } catch (error) {
+      return [];
+    }
   },
 
   // Check recipe Sattvic status
@@ -613,20 +210,16 @@ export const RecipeDBService = {
     };
   },
 
-  // Get recipe of the day
+  // Get recipe of the day (random from API)
   getRecipeOfTheDay: async (): Promise<Recipe | null> => {
-    if (!USE_REAL_API) {
-      return RECIPE_DB[0];
-    }
-
     try {
-      const apiRecipe = await RecipeDBAPIService.getRecipeOfTheDay();
-      if (!apiRecipe) return RECIPE_DB[0];
+      const allRecipes = await RecipeDBService.getAllRecipes();
+      if (allRecipes.length === 0) return null;
       
-      const nutrition = await RecipeDBAPIService.getRecipeNutrition(apiRecipe.id);
-      return convertRecipeDBToRecipe(apiRecipe, nutrition);
+      const randomIndex = Math.floor(Math.random() * Math.min(allRecipes.length, 20));
+      return allRecipes[randomIndex];
     } catch (error) {
-      return RECIPE_DB[0];
+      return null;
     }
   },
 };
